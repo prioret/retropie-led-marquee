@@ -1,0 +1,13 @@
+[Unit]
+Description=RetroPie LED Marquee Finder
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/bin/bash /home/pi/retropie-led-marquee/marquee_finder.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

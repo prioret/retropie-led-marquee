@@ -44,9 +44,12 @@ Runs as a background daemon on the RetroPie machine.
   - `/tmp/current_system.txt` — short system name (e.g. `snes`)
   - `/tmp/current_rom.txt` — full path to the ROM file
 
-**Run:**
+**Install service:**
 ```bash
-bash marquee_finder.sh &
+sudo cp marquee_finder.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable marquee_finder
+sudo systemctl start marquee_finder
 ```
 
 ## Pi 2 — `display_marquee.py`

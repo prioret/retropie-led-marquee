@@ -24,7 +24,7 @@ This project displays LED marquee images on a 48×192 HUB75 LED panel while a ga
 
 ## Script: `marquee_finder.sh` (Pi 1)
 
-Polling daemon — runs continuously, does not exit normally.
+Polling daemon — runs continuously, does not exit normally. Managed by `marquee_finder.service`.
 
 Every 2 seconds:
 1. If RetroArch is running and temp files are populated, resolves the Skyscraper marquee PNG for the active game.
