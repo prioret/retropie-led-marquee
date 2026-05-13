@@ -6,9 +6,22 @@ PI2_USER="pi"
 PI2_HOST="pi2"
 PI2_DEST="/tmp/marquee_incoming/current.png"
 CHECK_INTERVAL=2
+LOG_FILE="/var/logs/marquee_finder.log"
 # ---------------------
 
 last_sent=""
+
+log() {
+    local level="$1"
+    shift
+    local msg="$*"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "${ts} ${level} ${msg}" | tee -a "$LOG_FILE"
+}
+
+mkdir -p "$(dirname "$LOG_FILE")"
+log INFO "marquee_finder starting"
 
 get_marquee() {
     if ! pgrep -x "retroarch" > /dev/null; then
@@ -33,6 +46,7 @@ get_marquee() {
     if [[ -f "$marquee" ]]; then
         echo "$marquee"
     else
+        log WARNING "Marquee not found for ${rom_name} (${system}), using default"
         echo "$DEFAULT_IMAGE"
     fi
 }
@@ -48,10 +62,12 @@ while true; do
     current=$(get_marquee)
 
     if [[ -n "$current" && -f "$current" && "$current" != "$last_sent" ]]; then
+        log INFO "Sending $current to Pi 2"
         if send_to_pi2 "$current"; then
+            log INFO "Sent $current"
             last_sent="$current"
         else
-            echo "WARNING: Failed to send $current to Pi 2" >&2
+            log ERROR "Failed to send $current to Pi 2"
         fi
     fi
 
