@@ -1,29 +1,59 @@
 #!/bin/bash
 
-# Check if retroarch is actually running
-if ! pgrep -x "retroarch" > /dev/null; then
-    echo "ERROR: No game is currently running." >&2
-    exit 1
-fi
+# --- Configuration ---
+DEFAULT_IMAGE="/home/pi/RetroPie/marquees/default.png"
+PI2_USER="pi"
+PI2_HOST="pi2"
+PI2_DEST="/tmp/marquee_incoming/current.png"
+CHECK_INTERVAL=2
+# ---------------------
 
-SYSTEM=$(cat /tmp/current_system.txt)
-ROM_PATH=$(cat /tmp/current_rom.txt)
+last_sent=""
 
-# Validate they aren't empty
-if [ -z "$SYSTEM" ] || [ -z "$ROM_PATH" ]; then
-    echo "ERROR: Could not read game info." >&2
-    exit 1
-fi
+get_marquee() {
+    if ! pgrep -x "retroarch" > /dev/null; then
+        echo "$DEFAULT_IMAGE"
+        return
+    fi
 
-# Get just the rom filename without extension
-ROM_NAME=$(basename "${ROM_PATH%.*}")
+    local system_file="/tmp/current_system.txt"
+    local rom_file="/tmp/current_rom.txt"
 
-# Build marquee path using Skyscraper's media folder structure
-MARQUEE_PATH="/home/pi/RetroPie/roms/${SYSTEM}/media/marquees/${ROM_NAME}.png"
+    if [[ ! -s "$system_file" || ! -s "$rom_file" ]]; then
+        echo "$DEFAULT_IMAGE"
+        return
+    fi
 
-if [ ! -f "$MARQUEE_PATH" ]; then
-    echo "ERROR: Marquee file not found: $MARQUEE_PATH" >&2
-    exit 1
-fi
+    local system rom_path rom_name marquee
+    system=$(cat "$system_file")
+    rom_path=$(cat "$rom_file")
+    rom_name=$(basename "${rom_path%.*}")
+    marquee="/home/pi/RetroPie/roms/${system}/media/marquees/${rom_name}.png"
 
-echo "$MARQUEE_PATH"
+    if [[ -f "$marquee" ]]; then
+        echo "$marquee"
+    else
+        echo "$DEFAULT_IMAGE"
+    fi
+}
+
+send_to_pi2() {
+    local file="$1"
+    # SCP to a temp file then rename to avoid partial reads on Pi 2
+    scp "$file" "${PI2_USER}@${PI2_HOST}:${PI2_DEST}.tmp" 2>/dev/null && \
+        ssh "${PI2_USER}@${PI2_HOST}" "mv ${PI2_DEST}.tmp ${PI2_DEST}" 2>/dev/null
+}
+
+while true; do
+    current=$(get_marquee)
+
+    if [[ -n "$current" && -f "$current" && "$current" != "$last_sent" ]]; then
+        if send_to_pi2 "$current"; then
+            last_sent="$current"
+        else
+            echo "WARNING: Failed to send $current to Pi 2" >&2
+        fi
+    fi
+
+    sleep "$CHECK_INTERVAL"
+done

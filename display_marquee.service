@@ -1,0 +1,13 @@
+[Unit]
+Description=LED Marquee Display Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/bin/python3 /home/pi/retropie-led-marquee/display_marquee.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

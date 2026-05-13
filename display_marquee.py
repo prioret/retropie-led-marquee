@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+
+import hashlib
+import os
+import time
+from PIL import Image
+
+try:
+    from rgbmatrix import RGBMatrix, RGBMatrixOptions
+    HARDWARE_AVAILABLE = True
+except ImportError:
+    HARDWARE_AVAILABLE = False
+    print("Warning: rgbmatrix not available, running in preview mode")
+
+# --- Configuration ---
+INCOMING_FILE   = "/tmp/marquee_incoming/current.png"
+CACHE_DIR       = "/var/cache/marquee"
+DISPLAY_WIDTH   = 192
+DISPLAY_HEIGHT  = 48
+ROWS_PER_PANEL  = 48
+COLS_PER_PANEL  = 96
+CHAIN_LENGTH    = 2
+HARDWARE_MAPPING = "regular"   # use "adafruit-hat" if using Adafruit bonnet
+CHECK_INTERVAL  = 0.5          # seconds between polls
+# ---------------------
+
+
+def setup_matrix():
+    if not HARDWARE_AVAILABLE:
+        return None
+    options = RGBMatrixOptions()
+    options.rows = ROWS_PER_PANEL
+    options.cols = COLS_PER_PANEL
+    options.chain_length = CHAIN_LENGTH
+    options.hardware_mapping = HARDWARE_MAPPING
+    options.brightness = 100
+    options.disable_hardware_pulsing = True
+    return RGBMatrix(options=options)
+
+
+def file_hash(path):
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        h.update(f.read())
+    return h.hexdigest()
+
+
+def cache_path(content_hash):
+    return os.path.join(CACHE_DIR, f"{content_hash}_{DISPLAY_WIDTH}x{DISPLAY_HEIGHT}.png")
+
+
+def resize_to_fit(img):
+    """Fit img inside DISPLAY_WIDTH x DISPLAY_HEIGHT, centred on black."""
+    img_ratio = img.width / img.height
+    target_ratio = DISPLAY_WIDTH / DISPLAY_HEIGHT
+
+    if img_ratio > target_ratio:
+        new_w = DISPLAY_WIDTH
+        new_h = int(DISPLAY_WIDTH / img_ratio)
+    else:
+        new_h = DISPLAY_HEIGHT
+        new_w = int(DISPLAY_HEIGHT * img_ratio)
+
+    resized = img.resize((new_w, new_h), Image.LANCZOS)
+    canvas = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), (0, 0, 0))
+    canvas.paste(resized, ((DISPLAY_WIDTH - new_w) // 2, (DISPLAY_HEIGHT - new_h) // 2))
+    return canvas
+
+
+def process_and_display(matrix, incoming):
+    content_hash = file_hash(incoming)
+    cached = cache_path(content_hash)
+
+    if os.path.exists(cached):
+        img = Image.open(cached).convert("RGB")
+    else:
+        img = resize_to_fit(Image.open(incoming).convert("RGB"))
+        img.save(cached)
+
+    if matrix:
+        matrix.SetImage(img)
+    else:
+        print(f"[preview] Displaying {incoming} ({img.size}), cached at {cached}")
+
+    os.remove(incoming)
+
+
+def main():
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(INCOMING_FILE), exist_ok=True)
+
+    matrix = setup_matrix()
+    print("display_marquee: watching for images…")
+
+    while True:
+        if os.path.exists(INCOMING_FILE):
+            try:
+                process_and_display(matrix, INCOMING_FILE)
+            except Exception as exc:
+                print(f"Error processing {INCOMING_FILE}: {exc}")
+                try:
+                    os.remove(INCOMING_FILE)
+                except OSError:
+                    pass
+        time.sleep(CHECK_INTERVAL)
+
+
+if __name__ == "__main__":
+    main()
