@@ -117,10 +117,11 @@ Runs as a systemd service on the display Pi.
 | `HARDWARE_MAPPING` | `regular` | rpi-rgb-led-matrix mapping (`adafruit-hat`, etc.) |
 | `DISPLAY_WIDTH/HEIGHT` | `192` / `48` | LED panel resolution |
 
-**Install dependencies:**
+**GPIO access (no sudo required):**
+
+Add the `pi` user to the `gpio` group so scripts can access the LED matrix without root, then log out and back in (or reboot):
 ```bash
-pip3 install Pillow
-# Follow https://github.com/hzeller/rpi-rgb-led-matrix for the rgbmatrix library
+sudo usermod -a -G gpio pi
 ```
 
 **Install service:**

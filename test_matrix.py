@@ -3,7 +3,7 @@
 Visual test script for ElectroDragon HUB75 drive board + Waveshare 96x48 flexible LED matrix.
 
 Run with:
-    sudo venv/bin/python3 test_matrix.py
+    venv/bin/python3 test_matrix.py
 
 Requires rpi-rgb-led-matrix Python bindings installed into the venv:
     sudo apt-get install -y python3-dev cython3
