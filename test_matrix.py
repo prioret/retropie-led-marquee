@@ -25,23 +25,22 @@ except ImportError:
 ROWS       = 48    # physical rows on the Waveshare 96x48 panel
 COLS       = 96    # physical columns
 CHAIN      = 1     # single panel, not daisy-chained
-BRIGHTNESS = 50    # 0–100; keep ≤50 for flexible panels to limit heat and current draw
+BRIGHTNESS = 50    # Waveshare uses 100; keeping lower to limit heat on flexible panel
 
-# Waveshare-specified values for the RGB-Matrix-P2.5-96x48-F:
-GPIO_SLOW        = 4    # Waveshare specifies 4; try 3 if image is stable but slow
-PWM_LSB_NS       = 130  # Waveshare-specified; lower = faster refresh, less colour depth
+# Waveshare-specified values for the RGB-Matrix-P2.5-96x48-F (-D0 flag set):
+GPIO_SLOW        = 4    # Waveshare specifies 4
+PWM_LSB_NS       = 130  # Waveshare-specified
 PWM_BITS         = 11   # Waveshare-specified colour depth
 
-# Row address type: 0 = default ABC addressing.
+# Row address type: 0 = default.
 # This panel uses SM5368PF XOR-shift row drivers (non-standard HUB75).
-# If output looks garbled (rows shuffled/doubled), try ROW_ADDR_TYPE = 5 (ABC fast).
+# If rows look shuffled/doubled, try ROW_ADDR_TYPE = 5.
 ROW_ADDR_TYPE    = 0
 
-# Multiplexing: controls how pixel rows are mapped to physical rows.
-# 0 = direct (default), 1 = Stripe, 2 = Checkered, 3 = Spiral, 4 = ZStripe,
-# 5 = ZnMirrorZStripe, 17 = FlippedStripe
-# Blank sequential rows usually means wrong multiplexing OR missing E address line.
-MULTIPLEXING     = 1
+# Multiplexing: Waveshare specifies -D0 (direct/default).
+# Blank sequential rows are most likely a missing E address line, not multiplexing.
+# See README.md — Pi physical pin 10 must connect to HUB75 output pin 16.
+MULTIPLEXING     = 0
 
 WIDTH = COLS * CHAIN
 
