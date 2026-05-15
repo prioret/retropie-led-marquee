@@ -23,6 +23,14 @@ COLS_PER_PANEL   = 96
 CHAIN_LENGTH     = 2
 HARDWARE_MAPPING = "regular"   # use "adafruit-hat" if using Adafruit bonnet
 CHECK_INTERVAL   = 0.5         # seconds between polls
+
+# LED matrix hardware settings (Waveshare RGB-Matrix-P2.5-96x48-F + ElectroDragon board)
+BRIGHTNESS       = 50    # Waveshare specifies 100; lower reduces heat on flexible panel
+GPIO_SLOWDOWN    = 4     # Waveshare-specified for this panel
+PWM_LSB_NS       = 130   # Waveshare-specified
+PWM_BITS         = 11    # Waveshare-specified colour depth
+ROW_ADDRESS_TYPE = 0     # 0 = default; try 5 if rows look shuffled
+MULTIPLEXING     = 0     # 0 = direct (Waveshare-specified via -D0)
 # ---------------------
 
 
@@ -43,12 +51,17 @@ def setup_matrix():
         logging.warning("rgbmatrix not available, running in preview mode")
         return None
     options = RGBMatrixOptions()
-    options.rows = ROWS_PER_PANEL
-    options.cols = COLS_PER_PANEL
-    options.chain_length = CHAIN_LENGTH
-    options.hardware_mapping = HARDWARE_MAPPING
-    options.brightness = 100
-    options.disable_hardware_pulsing = True
+    options.rows                     = ROWS_PER_PANEL
+    options.cols                     = COLS_PER_PANEL
+    options.chain_length             = CHAIN_LENGTH
+    options.hardware_mapping         = HARDWARE_MAPPING
+    options.brightness               = BRIGHTNESS
+    options.gpio_slowdown            = GPIO_SLOWDOWN
+    options.pwm_lsb_nanoseconds      = PWM_LSB_NS
+    options.pwm_bits                 = PWM_BITS
+    options.row_address_type         = ROW_ADDRESS_TYPE
+    options.multiplexing             = MULTIPLEXING
+    options.disable_hardware_pulsing = True        # required for ElectroDragon board
     return RGBMatrix(options=options)
 
 
