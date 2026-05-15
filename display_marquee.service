@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-ExecStart=/home/pi/retropie-led-marquee/venv/bin/python3 /home/pi/retropie-led-marquee/display_marquee.py
+User=prioret
+ExecStart=/home/prioret/retropie-led-marquee/venv/bin/python3 /home/prioret/retropie-led-marquee/display_marquee.py
 Restart=always
 RestartSec=5
 

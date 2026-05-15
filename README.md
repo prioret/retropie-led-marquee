@@ -121,7 +121,7 @@ Runs as a systemd service on the display Pi.
 
 Add the `pi` user to the `gpio` group so scripts can access the LED matrix without root, then log out and back in (or reboot):
 ```bash
-sudo usermod -a -G gpio pi
+sudo usermod -a -G gpio prioret
 ```
 
 **Install service:**

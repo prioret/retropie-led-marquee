@@ -2,7 +2,7 @@
 
 # --- Configuration ---
 DEFAULT_IMAGE="/home/pi/RetroPie/marquees/default.png"
-PI2_USER="pi"
+PI2_USER="prioret"
 PI2_HOST="pi2"
 PI2_DEST="/tmp/marquee_incoming/current.png"
 CHECK_INTERVAL=2
