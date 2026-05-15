@@ -6,11 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This project displays LED marquee images on a 48×192 HUB75 LED panel while a game is running in RetroArch. It runs across two Raspberry Pis.
 
+## Hardware
+
+- 2× HUB75 LED matrix panels (48×96 each), arranged as a single 48×192 display
+- [ElectroDragon RGB LED Matrix Panel Drive Board](https://www.electrodragon.com/product/rgb-matrix-panel-drive-board-raspberry-pi/) for Raspberry Pi — panels connected to port 0
+- `disable_hardware_pulsing = True` is required in `RGBMatrixOptions` for this board
+
 ## Architecture
 
 | Pi | Role | Key files |
 |----|------|-----------|
-| **Pi 1** (RetroPie) | Polls for the active game, resolves its marquee PNG, SCPs it to Pi 2 when it changes | `marquee_finder.sh` |
+| **Pi 1** (RetroPie) | Polls for the active game, resolves its marquee PNG, SCPs it to Pi 2 when it changes | `marquee_finder.sh`, `marquee_finder.service` |
 | **Pi 2** (Display) | Watches for incoming images, resizes to fit the panel, displays via rpi-rgb-led-matrix, caches resized output | `display_marquee.py`, `display_marquee.service` |
 
 ## Pi 1 runtime environment
@@ -20,7 +26,7 @@ This project displays LED marquee images on a 48×192 HUB75 LED panel while a ga
 - Two temp files written externally (EmulationStation event script or runcommand hook):
   - `/tmp/current_system.txt` — short system name (e.g. `snes`, `megadrive`)
   - `/tmp/current_rom.txt` — full path to the ROM file
-- Requires passwordless SSH access from Pi 1 to Pi 2
+- Requires passwordless SSH access from Pi 1 to Pi 2 (`ssh-copy-id pi@pi2`)
 
 ## Script: `marquee_finder.sh` (Pi 1)
 
@@ -33,6 +39,8 @@ Every 2 seconds:
 
 Configuration variables at the top of the script: `DEFAULT_IMAGE`, `PI2_USER`, `PI2_HOST`, `PI2_DEST`, `CHECK_INTERVAL`.
 
+Logs to `/var/logs/marquee_finder.log` (note: non-standard `logs` path, not `/var/log/`).
+
 ## Script: `display_marquee.py` (Pi 2)
 
 Run as a systemd service via `display_marquee.service`.
@@ -43,6 +51,38 @@ Run as a systemd service via `display_marquee.service`.
 - Deletes the original file so the next SCP from Pi 1 triggers a new display cycle.
 
 Hardware config at the top of the script: `ROWS_PER_PANEL`, `COLS_PER_PANEL`, `CHAIN_LENGTH`, `HARDWARE_MAPPING`.
+
+**Panel config relationship:** `DISPLAY_WIDTH = COLS_PER_PANEL × CHAIN_LENGTH` and `DISPLAY_HEIGHT = ROWS_PER_PANEL`. If you change `CHAIN_LENGTH`, update `DISPLAY_WIDTH` to match, or the cache key and resize target will be wrong.
+
+Logs to `/var/logs/display_marquee.log` (same non-standard path as above).
+
+## Deployment
+
+**Pi 2 — set up Python virtual environment:**
+```bash
+# --system-site-packages lets the venv see rgbmatrix, which is built from source system-wide
+python3 -m venv --system-site-packages venv
+venv/bin/pip install -r requirements.txt
+# Build and install rpi-rgb-led-matrix system-wide per https://github.com/hzeller/rpi-rgb-led-matrix
+```
+
+**Pi 1 — install service:**
+```bash
+sudo cp marquee_finder.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable marquee_finder
+sudo systemctl start marquee_finder
+```
+
+**Pi 2 — install service:**
+```bash
+sudo cp display_marquee.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable display_marquee
+sudo systemctl start display_marquee
+```
+
+Both services expect the scripts at `/home/pi/retropie-led-marquee/`.
 
 ## Testing
 
@@ -57,7 +97,9 @@ bash -n marquee_finder.sh
 ```bash
 echo "snes" > /tmp/current_system.txt
 echo "/home/pi/RetroPie/roms/snes/MyGame.smc" > /tmp/current_rom.txt
-# ensure retroarch process is running, then:
+# Start a dummy process named 'retroarch' so pgrep -x retroarch succeeds:
+sleep 3600 &
+exec -a retroarch sleep 3600 &
 bash marquee_finder.sh
 ```
 

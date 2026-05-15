@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-ExecStart=/usr/bin/python3 /home/pi/retropie-led-marquee/display_marquee.py
+ExecStart=/home/pi/retropie-led-marquee/venv/bin/python3 /home/pi/retropie-led-marquee/display_marquee.py
 Restart=always
 RestartSec=5
 
