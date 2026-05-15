@@ -60,10 +60,12 @@ Logs to `/var/logs/display_marquee.log` (same non-standard path as above).
 
 **Pi 2 — set up Python virtual environment:**
 ```bash
-# --system-site-packages lets the venv see rgbmatrix, which is built from source system-wide
-python3 -m venv --system-site-packages venv
+python3 -m venv venv
 venv/bin/pip install -r requirements.txt
-# Build and install rpi-rgb-led-matrix system-wide per https://github.com/hzeller/rpi-rgb-led-matrix
+# Build and install rpi-rgb-led-matrix into the venv:
+#   sudo apt-get install -y python3-dev cython3
+#   cd ~/git/rpi-rgb-led-matrix && ~/path/to/venv/bin/pip install .
+# See: https://github.com/hzeller/rpi-rgb-led-matrix
 ```
 
 **Pi 1 — install service:**
