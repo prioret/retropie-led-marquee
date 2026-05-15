@@ -9,6 +9,30 @@ Displays game marquee images on an LED matrix panel while a game is running in R
 
 The drive board documentation is available [here](https://w2.electrodragon.com/board-series-dat/RMP-driver-dat/RMP-driver-dat.md).
 
+### E address line
+
+The Waveshare 96×48 panel has 48 rows. Standard HUB75 address lines A–D (4 bits) can only address 16 rows per half-panel, covering 32 rows total. The **E address line** is required to address rows 16–23 in each half (physical rows 16–23 and 40–47). If E is not connected, those 8 rows will be blank.
+
+In the hzeller `regular` hardware mapping, **E = GPIO 15 = Pi physical pin 10** (the RXD serial pin).
+
+**Check continuity** (Pi powered off, multimeter in continuity mode) between:
+- Pi header **pin 10** → HUB75 output connector **pin 16**
+
+HUB75 16-pin IDC pinout (pin 1 = top-left when facing the connector):
+
+```
+ 1  R1    2  G1
+ 3  B1    4  GND
+ 5  R2    6  G2
+ 7  B2    8  GND
+ 9  A    10  B
+11  C    12  D
+13  CLK  14  STR
+15  OE   16  E
+```
+
+If the ElectroDragon board does not route E to HUB75 pin 16, it must be wired manually: run a jumper wire from **Pi physical pin 10** to **HUB75 output pin 16** on the board.
+
 ## Architecture
 
 Two Raspberry Pis are involved:

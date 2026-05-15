@@ -26,7 +26,22 @@ ROWS       = 48    # physical rows on the Waveshare 96x48 panel
 COLS       = 96    # physical columns
 CHAIN      = 1     # single panel, not daisy-chained
 BRIGHTNESS = 50    # 0–100; keep ≤50 for flexible panels to limit heat and current draw
-GPIO_SLOW  = 2     # Pi 3 typically needs 2; increase to 3 if you see flickering/ghosting
+
+# Waveshare-specified values for the RGB-Matrix-P2.5-96x48-F:
+GPIO_SLOW        = 4    # Waveshare specifies 4; try 3 if image is stable but slow
+PWM_LSB_NS       = 130  # Waveshare-specified; lower = faster refresh, less colour depth
+PWM_BITS         = 11   # Waveshare-specified colour depth
+
+# Row address type: 0 = default ABC addressing.
+# This panel uses SM5368PF XOR-shift row drivers (non-standard HUB75).
+# If output looks garbled (rows shuffled/doubled), try ROW_ADDR_TYPE = 5 (ABC fast).
+ROW_ADDR_TYPE    = 0
+
+# Multiplexing: controls how pixel rows are mapped to physical rows.
+# 0 = direct (default), 1 = Stripe, 2 = Checkered, 3 = Spiral, 4 = ZStripe,
+# 5 = ZnMirrorZStripe, 17 = FlippedStripe
+# Blank sequential rows usually means wrong multiplexing OR missing E address line.
+MULTIPLEXING     = 1
 
 WIDTH = COLS * CHAIN
 
@@ -39,6 +54,10 @@ def make_matrix():
     opts.hardware_mapping         = "regular"   # standard GPIO mapping for ElectroDragon board
     opts.brightness               = BRIGHTNESS
     opts.gpio_slowdown            = GPIO_SLOW
+    opts.pwm_lsb_nanoseconds      = PWM_LSB_NS
+    opts.pwm_bits                 = PWM_BITS
+    opts.row_address_type         = ROW_ADDR_TYPE
+    opts.multiplexing             = MULTIPLEXING
     opts.disable_hardware_pulsing = True        # required for ElectroDragon board
     return RGBMatrix(options=opts)
 
@@ -130,8 +149,10 @@ def test_brightness_fade(matrix):
 
 def main():
     print(f"Initialising {WIDTH}×{ROWS} matrix  "
-          f"(chain={CHAIN}, brightness={BRIGHTNESS}%, gpio_slowdown={GPIO_SLOW})")
-    print("Tip: if you see flickering or ghosting, increase GPIO_SLOW to 3.\n")
+          f"(chain={CHAIN}, brightness={BRIGHTNESS}%, gpio_slowdown={GPIO_SLOW}, "
+          f"pwm_bits={PWM_BITS}, pwm_lsb_ns={PWM_LSB_NS}, "
+          f"row_addr_type={ROW_ADDR_TYPE}, multiplexing={MULTIPLEXING})")
+    print("Blank rows: try MULTIPLEXING 0/1/2/17 or check E address line (see comments).\n")
 
     matrix = make_matrix()
 
