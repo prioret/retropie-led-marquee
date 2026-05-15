@@ -4,7 +4,7 @@ Displays game marquee images on an LED matrix panel while a game is running in R
 
 ## Hardware
 
-- 2x [HUB75 LED matrix panels](https://www.amazon.com/dp/B0BRBDNT4L?ref=ppx_yo2ov_dt_b_fed_asin_title) (48×96 pixels each), arranged as a single 48×192 panel
+- 2x [Waveshare RGB-Matrix-P2.5-96x48-F](https://www.waveshare.com/wiki/RGB-Matrix-P2.5-96x48-F) flexible HUB75 LED matrix panels (48×96 pixels each), arranged as a single 48×192 panel ([buy](https://www.amazon.com/dp/B0BRBDNT4L?ref=ppx_yo2ov_dt_b_fed_asin_title))
 - [ElectroDragon RGB LED Matrix Panel Drive Board for Raspberry Pi](https://www.electrodragon.com/product/rgb-matrix-panel-drive-board-raspberry-pi/) — panels connected to port 0
 
 The drive board documentation is available [here](https://w2.electrodragon.com/board-series-dat/RMP-driver-dat/RMP-driver-dat.md).
@@ -35,7 +35,7 @@ If the ElectroDragon board does not route E to HUB75 pin 16, it must be wired ma
 
 ### hzeller rpi-rgb-led-matrix options
 
-These are the options specified by Waveshare for the [RGB-Matrix-P2.5-96x48-F](https://www.waveshare.com/wiki/RGB-Matrix-P2.5-96x48-F) panel with the [hzeller/rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix) library:
+These are the options specified by Waveshare for the RGB-Matrix-P2.5-96x48-F panel with the [hzeller/rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix) library:
 
 ```
 -D0 --led-no-hardware-pulse --led-cols=96 --led-rows=48 \
