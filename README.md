@@ -33,6 +33,29 @@ HUB75 16-pin IDC pinout (pin 1 = top-left when facing the connector):
 
 If the ElectroDragon board does not route E to HUB75 pin 16, it must be wired manually: run a jumper wire from **Pi physical pin 10** to **HUB75 output pin 16** on the board.
 
+### hzeller rpi-rgb-led-matrix options
+
+These are the options specified by Waveshare for the [RGB-Matrix-P2.5-96x48-F](https://www.waveshare.com/wiki/RGB-Matrix-P2.5-96x48-F) panel with the [hzeller/rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix) library:
+
+```
+-D0 --led-no-hardware-pulse --led-cols=96 --led-rows=48 \
+    --led-pwm-lsb-nanoseconds=130 --led-pwm-bits=11 \
+    --led-brightness=100 --led-slowdown-gpio=4
+```
+
+| Flag | Value | Notes |
+|------|-------|-------|
+| `-D0` | multiplexing=0 | Direct (default); blank rows are an E address line issue, not multiplexing |
+| `--led-no-hardware-pulse` | — | Required for ElectroDragon board |
+| `--led-cols` | 96 | |
+| `--led-rows` | 48 | |
+| `--led-pwm-lsb-nanoseconds` | 130 | Waveshare-specified for this panel |
+| `--led-pwm-bits` | 11 | Colour depth |
+| `--led-brightness` | 100 | Consider lower values (e.g. 50) to reduce heat on the flexible panel |
+| `--led-slowdown-gpio` | 4 | Waveshare-specified; try 3 if display is stable |
+
+In the Python API (`test_matrix.py`), these map to `RGBMatrixOptions` fields: `multiplexing`, `disable_hardware_pulsing`, `cols`, `rows`, `pwm_lsb_nanoseconds`, `pwm_bits`, `brightness`, `gpio_slowdown`.
+
 ## Architecture
 
 Two Raspberry Pis are involved:
