@@ -9,8 +9,8 @@ This project displays LED marquee images on a 48×192 HUB75 LED panel while a ga
 ## Hardware
 
 - 2× HUB75 LED matrix panels (48×96 each), arranged as a single 48×192 display
-- [ElectroDragon RGB LED Matrix Panel Drive Board](https://www.electrodragon.com/product/rgb-matrix-panel-drive-board-raspberry-pi/) for Raspberry Pi — panels connected to port 0
-- `disable_hardware_pulsing = True` is required in `RGBMatrixOptions` for this board
+- Panels wired directly to Raspberry Pi GPIO (no HAT or driver board)
+- `disable_hardware_pulsing = True` is required in `RGBMatrixOptions` (Waveshare-specified)
 
 ## Architecture
 

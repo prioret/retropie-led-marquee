@@ -5,9 +5,7 @@ Displays game marquee images on an LED matrix panel while a game is running in R
 ## Hardware
 
 - 2x [Waveshare RGB-Matrix-P2.5-96x48-F](https://www.waveshare.com/wiki/RGB-Matrix-P2.5-96x48-F) flexible HUB75 LED matrix panels (48×96 pixels each), arranged as a single 48×192 panel ([buy](https://www.amazon.com/dp/B0BRBDNT4L?ref=ppx_yo2ov_dt_b_fed_asin_title))
-- [ElectroDragon RGB LED Matrix Panel Drive Board for Raspberry Pi](https://www.electrodragon.com/product/rgb-matrix-panel-drive-board-raspberry-pi/) — panels connected to port 0
-
-The drive board documentation is available [here](https://w2.electrodragon.com/board-series-dat/RMP-driver-dat/RMP-driver-dat.md).
+- Panels wired directly to Raspberry Pi GPIO (no HAT or driver board)
 
 ### E address line
 
@@ -31,7 +29,7 @@ HUB75 16-pin IDC pinout (pin 1 = top-left when facing the connector):
 15  OE   16  E
 ```
 
-If the ElectroDragon board does not route E to HUB75 pin 16, it must be wired manually: run a jumper wire from **Pi physical pin 10** to **HUB75 output pin 16** on the board.
+When wiring directly, connect **Pi physical pin 10** to **HUB75 pin 16** (E).
 
 ### hzeller rpi-rgb-led-matrix options
 
@@ -46,7 +44,7 @@ These are the options specified by Waveshare for the RGB-Matrix-P2.5-96x48-F pan
 | Flag | Value | Notes |
 |------|-------|-------|
 | `-D0` | multiplexing=0 | Direct (default); blank rows are an E address line issue, not multiplexing |
-| `--led-no-hardware-pulse` | — | Required for ElectroDragon board |
+| `--led-no-hardware-pulse` | — | Waveshare-specified |
 | `--led-cols` | 96 | |
 | `--led-rows` | 48 | |
 | `--led-pwm-lsb-nanoseconds` | 130 | Waveshare-specified for this panel |
@@ -63,7 +61,7 @@ Two Raspberry Pis are involved:
 | Pi | Role |
 |----|------|
 | **Pi 1** (RetroPie) | Runs RetroArch. Polls every 2 s for the active game, finds its marquee PNG, and SCPs it to Pi 2 when it changes. |
-| **Pi 2** (Display) | Has the ElectroDragon HUB75 hat. Watches for incoming images, resizes them to fit the 48×192 panel, and displays them. |
+| **Pi 2** (Display) | Watches for incoming images, resizes them to fit the 48×192 panel, and displays them via direct GPIO. |
 
 ## Pi 1 — `marquee_finder.sh`
 
