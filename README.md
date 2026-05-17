@@ -115,12 +115,26 @@ Runs as a systemd service on the display Pi.
 | `HARDWARE_MAPPING` | `regular` | rpi-rgb-led-matrix mapping (`adafruit-hat`, etc.) |
 | `DISPLAY_WIDTH/HEIGHT` | `192` / `48` | LED panel resolution |
 
-**GPIO access (no sudo required):**
+**Permissions and display stability:**
 
-Add the `pi` user to the `gpio` group so scripts can access the LED matrix without root, then log out and back in (or reboot):
-```bash
-sudo usermod -a -G gpio prioret
-```
+The matrix driver needs two things to run cleanly:
+
+1. **GPIO access** — add your user to the `gpio` group (one-time setup):
+   ```bash
+   sudo usermod -a -G gpio prioret
+   ```
+
+2. **Realtime thread priority** — without this the OS scheduler interrupts PWM timing, causing brightness instability and row flicker. Either run as root, or grant the capability to the venv Python binary:
+   ```bash
+   sudo setcap 'cap_sys_nice=eip' /home/prioret/git/retropie-led-marquee/venv/bin/python3
+   ```
+   The systemd service should run as root (`User=root` in the `.service` file) or have this capability set.
+
+3. **CPU isolation** — for the most stable output, dedicate one CPU core to the matrix driver. Add `isolcpus=3` to the end of `/boot/cmdline.txt` (all on one line) and reboot:
+   ```
+   … existing options … isolcpus=3
+   ```
+   This prevents the kernel from scheduling other tasks onto core 3, eliminating the remaining brightness shimmer.
 
 **Install service:**
 ```bash
