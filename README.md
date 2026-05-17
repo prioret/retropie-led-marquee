@@ -143,3 +143,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable display_marquee
 sudo systemctl start display_marquee
 ```
+
+**After updating the service file** (e.g. changing `User`, `ExecStart`, etc.):
+```bash
+sudo cp display_marquee.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart display_marquee
+```
+
+**Check service status and logs:**
+```bash
+sudo systemctl status display_marquee
+sudo journalctl -u display_marquee -f
+```
