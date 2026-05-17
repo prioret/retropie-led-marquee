@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Visual test script for ElectroDragon HUB75 drive board + Waveshare 96x48 flexible LED matrix.
+Visual test script for Waveshare 96x48 flexible LED matrix, wired directly to Raspberry Pi GPIO.
 
 Run with:
     venv/bin/python3 test_matrix.py
@@ -24,13 +24,14 @@ except ImportError:
 # --- Hardware configuration ---
 ROWS       = 48    # physical rows on the Waveshare 96x48 panel
 COLS       = 96    # physical columns
-CHAIN      = 1     # single panel, not daisy-chained
+CHAIN      = 2     # two panels daisy-chained
 BRIGHTNESS = 50    # Waveshare uses 100; keeping lower to limit heat on flexible panel
 
 # Waveshare-specified values for the RGB-Matrix-P2.5-96x48-F (-D0 flag set):
 GPIO_SLOW        = 4    # Waveshare specifies 4
 PWM_LSB_NS       = 130  # Waveshare-specified
 PWM_BITS         = 11   # Waveshare-specified colour depth
+LIMIT_REFRESH_HZ = 0    # 0 = unlimited; set to e.g. 60 to cap refresh rate
 
 # Row address type: 0 = default.
 # This panel uses SM5368PF XOR-shift row drivers (non-standard HUB75).
@@ -50,14 +51,15 @@ def make_matrix():
     opts.rows                     = ROWS
     opts.cols                     = COLS
     opts.chain_length             = CHAIN
-    opts.hardware_mapping         = "regular"   # standard GPIO mapping for ElectroDragon board
+    opts.hardware_mapping         = "regular"   # standard direct GPIO mapping
     opts.brightness               = BRIGHTNESS
     opts.gpio_slowdown            = GPIO_SLOW
     opts.pwm_lsb_nanoseconds      = PWM_LSB_NS
     opts.pwm_bits                 = PWM_BITS
     opts.row_address_type         = ROW_ADDR_TYPE
     opts.multiplexing             = MULTIPLEXING
-    opts.disable_hardware_pulsing = True        # required for ElectroDragon board
+    opts.disable_hardware_pulsing = True        # Waveshare-specified
+    opts.limit_refresh_rate_hz    = LIMIT_REFRESH_HZ
     return RGBMatrix(options=opts)
 
 
@@ -150,7 +152,8 @@ def main():
     print(f"Initialising {WIDTH}×{ROWS} matrix  "
           f"(chain={CHAIN}, brightness={BRIGHTNESS}%, gpio_slowdown={GPIO_SLOW}, "
           f"pwm_bits={PWM_BITS}, pwm_lsb_ns={PWM_LSB_NS}, "
-          f"row_addr_type={ROW_ADDR_TYPE}, multiplexing={MULTIPLEXING})")
+          f"row_addr_type={ROW_ADDR_TYPE}, multiplexing={MULTIPLEXING}, "
+          f"limit_refresh_hz={LIMIT_REFRESH_HZ})")
     print("Blank rows: try MULTIPLEXING 0/1/2/17 or check E address line (see comments).\n")
 
     matrix = make_matrix()

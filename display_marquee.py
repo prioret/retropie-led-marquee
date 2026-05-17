@@ -24,13 +24,14 @@ CHAIN_LENGTH     = 2
 HARDWARE_MAPPING = "regular"   # use "adafruit-hat" if using Adafruit bonnet
 CHECK_INTERVAL   = 0.5         # seconds between polls
 
-# LED matrix hardware settings (Waveshare RGB-Matrix-P2.5-96x48-F + ElectroDragon board)
+# LED matrix hardware settings (Waveshare RGB-Matrix-P2.5-96x48-F, direct GPIO)
 BRIGHTNESS       = 50    # Waveshare specifies 100; lower reduces heat on flexible panel
 GPIO_SLOWDOWN    = 4     # Waveshare-specified for this panel
 PWM_LSB_NS       = 130   # Waveshare-specified
 PWM_BITS         = 11    # Waveshare-specified colour depth
 ROW_ADDRESS_TYPE = 0     # 0 = default; try 5 if rows look shuffled
 MULTIPLEXING     = 0     # 0 = direct (Waveshare-specified via -D0)
+LIMIT_REFRESH_HZ = 0     # 0 = unlimited; set to e.g. 60 to cap refresh rate
 # ---------------------
 
 
@@ -61,7 +62,8 @@ def setup_matrix():
     options.pwm_bits                 = PWM_BITS
     options.row_address_type         = ROW_ADDRESS_TYPE
     options.multiplexing             = MULTIPLEXING
-    options.disable_hardware_pulsing = True        # required for ElectroDragon board
+    options.disable_hardware_pulsing = True        # Waveshare-specified
+    options.limit_refresh_rate_hz    = LIMIT_REFRESH_HZ
     return RGBMatrix(options=options)
 
 
@@ -108,7 +110,9 @@ def process_and_display(matrix, incoming):
         logging.info("Cached resized image at %s", cached)
 
     if matrix:
-        matrix.SetImage(img)
+        canvas = matrix.CreateFrameCanvas()
+        canvas.SetImage(img)
+        matrix.SwapOnVSync(canvas)
         logging.info("Displayed %s on LED matrix", incoming)
     else:
         logging.info("[preview] Would display %s (%s), cached at %s", incoming, img.size, cached)
