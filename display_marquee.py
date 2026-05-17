@@ -16,22 +16,23 @@ except ImportError:
 INCOMING_FILE    = "/tmp/marquee_incoming/current.png"
 CACHE_DIR        = "/var/cache/marquee"
 LOG_FILE         = "/var/logs/display_marquee.log"
-DISPLAY_WIDTH    = 192
+DISPLAY_WIDTH    = 96
 DISPLAY_HEIGHT   = 48
 ROWS_PER_PANEL   = 48
 COLS_PER_PANEL   = 96
-CHAIN_LENGTH     = 2
+CHAIN_LENGTH     = 1
 HARDWARE_MAPPING = "regular"   # use "adafruit-hat" if using Adafruit bonnet
 CHECK_INTERVAL   = 0.5         # seconds between polls
 
 # LED matrix hardware settings (Waveshare RGB-Matrix-P2.5-96x48-F, direct GPIO)
 BRIGHTNESS       = 50    # Waveshare specifies 100; lower reduces heat on flexible panel
-GPIO_SLOWDOWN    = 4     # Waveshare-specified for this panel
-PWM_LSB_NS       = 130   # Waveshare-specified
-PWM_BITS         = 11    # Waveshare-specified colour depth
+GPIO_SLOWDOWN    = 5     # increased from Waveshare-specified 4 for stability
+PWM_LSB_NS       = 250   # increased from 130 for stable brightness
+PWM_BITS         = 9     # reduced from 11 for stable brightness
 ROW_ADDRESS_TYPE = 0     # 0 = default; try 5 if rows look shuffled
 MULTIPLEXING     = 0     # 0 = direct (Waveshare-specified via -D0)
-LIMIT_REFRESH_HZ = 0     # 0 = unlimited; set to e.g. 60 to cap refresh rate
+LIMIT_REFRESH_HZ = 60    # cap refresh rate for stable PWM brightness
+PWM_DITHER_BITS  = 1     # temporal dithering to smooth low-brightness flicker
 # ---------------------
 
 
@@ -64,6 +65,7 @@ def setup_matrix():
     options.multiplexing             = MULTIPLEXING
     options.disable_hardware_pulsing = True        # Waveshare-specified
     options.limit_refresh_rate_hz    = LIMIT_REFRESH_HZ
+    options.pwm_dither_bits          = PWM_DITHER_BITS
     return RGBMatrix(options=options)
 
 

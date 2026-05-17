@@ -24,14 +24,15 @@ except ImportError:
 # --- Hardware configuration ---
 ROWS       = 48    # physical rows on the Waveshare 96x48 panel
 COLS       = 96    # physical columns
-CHAIN      = 2     # two panels daisy-chained
+CHAIN      = 1     # single panel for power supply testing
 BRIGHTNESS = 50    # Waveshare uses 100; keeping lower to limit heat on flexible panel
 
 # Waveshare-specified values for the RGB-Matrix-P2.5-96x48-F (-D0 flag set):
-GPIO_SLOW        = 4    # Waveshare specifies 4
-PWM_LSB_NS       = 130  # Waveshare-specified
-PWM_BITS         = 11   # Waveshare-specified colour depth
-LIMIT_REFRESH_HZ = 0    # 0 = unlimited; set to e.g. 60 to cap refresh rate
+GPIO_SLOW        = 5    # increased from Waveshare-specified 4 for stability
+PWM_LSB_NS       = 250  # increased from 130 for stable brightness
+PWM_BITS         = 9    # reduced from 11 for stable brightness
+LIMIT_REFRESH_HZ = 60   # cap refresh rate for stable PWM brightness
+PWM_DITHER_BITS  = 1    # temporal dithering to smooth low-brightness flicker
 
 # Row address type: 0 = default.
 # This panel uses SM5368PF XOR-shift row drivers (non-standard HUB75).
@@ -60,6 +61,7 @@ def make_matrix():
     opts.multiplexing             = MULTIPLEXING
     opts.disable_hardware_pulsing = True        # Waveshare-specified
     opts.limit_refresh_rate_hz    = LIMIT_REFRESH_HZ
+    opts.pwm_dither_bits          = PWM_DITHER_BITS
     return RGBMatrix(options=opts)
 
 

@@ -156,3 +156,100 @@ sudo systemctl restart display_marquee
 sudo systemctl status display_marquee
 sudo journalctl -u display_marquee -f
 ```
+
+## Pi 2 — Fresh install from scratch
+
+Use **Raspberry Pi OS Lite (64-bit)** — no desktop environment. The X11/window manager overhead causes PWM timing instability that manifests as brightness flicker on the LED panel.
+
+### 1. Flash the SD card
+
+Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/). In the OS customisation screen (gear icon), set:
+- Hostname (e.g. `marqueepi`)
+- Username and password
+- Enable SSH
+- Wi-Fi credentials if needed
+
+### 2. First boot — update and install dependencies
+
+```bash
+sudo apt-get update && sudo apt-get upgrade -y
+sudo apt-get install -y git python3-dev python3-venv cython3
+```
+
+### 3. CPU isolation — edit cmdline.txt
+
+On Raspberry Pi OS Bookworm (current), the file is `/boot/firmware/cmdline.txt`. On Bullseye and earlier it is `/boot/cmdline.txt`.
+
+The file is a **single line** — do not add a newline. Append `isolcpus=3` to the end:
+
+```bash
+sudo nano /boot/firmware/cmdline.txt
+```
+
+Before:
+```
+console=serial0,115200 console=tty1 root=PARTUUID=... rootfstype=ext4 fsck.repair=yes rootwait
+```
+
+After:
+```
+console=serial0,115200 console=tty1 root=PARTUUID=... rootfstype=ext4 fsck.repair=yes rootwait isolcpus=3
+```
+
+Reboot and confirm it took effect:
+```bash
+sudo reboot
+cat /sys/devices/system/cpu/isolated   # should print: 3
+```
+
+### 4. Clone this repo
+
+The service file expects the repo at `~/retropie-led-marquee`:
+
+```bash
+cd ~
+git clone https://github.com/YOUR_USERNAME/retropie-led-marquee.git
+```
+
+### 5. Build and install rpi-rgb-led-matrix
+
+```bash
+cd ~
+git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
+cd ~/retropie-led-marquee
+python3 -m venv venv
+venv/bin/pip install --upgrade pip
+cd ~/rpi-rgb-led-matrix
+~/retropie-led-marquee/venv/bin/pip install .
+```
+
+### 6. Install Python dependencies
+
+```bash
+cd ~/retropie-led-marquee
+venv/bin/pip install -r requirements.txt
+```
+
+### 7. Create required directories
+
+```bash
+sudo mkdir -p /var/logs /var/cache/marquee /tmp/marquee_incoming
+```
+
+### 8. Install and enable the service
+
+Open `display_marquee.service` and verify the `ExecStart` paths match your username and clone location, then:
+
+```bash
+sudo cp ~/retropie-led-marquee/display_marquee.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable display_marquee
+sudo systemctl start display_marquee
+```
+
+### 9. Verify
+
+```bash
+sudo systemctl status display_marquee
+sudo venv/bin/python3 ~/retropie-led-marquee/test_matrix.py   # quick hardware test
+```
