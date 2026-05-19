@@ -41,7 +41,7 @@ Every 2 seconds:
 
 Configuration variables at the top of the script: `DEFAULT_IMAGE`, `PI2_USER`, `PI2_HOST`, `PI2_DEST`, `CHECK_INTERVAL`.
 
-Logs to `/var/logs/marquee_finder.log` (note: non-standard `logs` path, not `/var/log/`).
+Logs to `/var/log/marquee_finder.log`.
 
 ## Script: `display_marquee.py` (Pi 2)
 
@@ -56,7 +56,7 @@ Hardware config at the top of the script: `ROWS_PER_PANEL`, `COLS_PER_PANEL`, `C
 
 **Panel config relationship:** `DISPLAY_WIDTH = COLS_PER_PANEL × CHAIN_LENGTH` and `DISPLAY_HEIGHT = ROWS_PER_PANEL`. If you change `CHAIN_LENGTH`, update `DISPLAY_WIDTH` to match, or the cache key and resize target will be wrong.
 
-Logs to `/var/logs/display_marquee.log` (same non-standard path as above).
+Logs to `/var/log/display_marquee.log`.
 
 ## Display stability requirements (Pi 2)
 

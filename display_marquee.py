@@ -15,7 +15,7 @@ except ImportError:
 # --- Configuration ---
 INCOMING_FILE    = "/tmp/marquee_incoming/current.png"
 CACHE_DIR        = "/var/cache/marquee"
-LOG_FILE         = "/var/logs/display_marquee.log"
+LOG_FILE         = "/var/log/display_marquee.log"
 DISPLAY_WIDTH    = 192
 DISPLAY_HEIGHT   = 48
 ROWS_PER_PANEL   = 48
