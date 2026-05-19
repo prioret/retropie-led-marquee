@@ -22,27 +22,16 @@ except ImportError:
     sys.exit(1)
 
 # --- Hardware configuration ---
-ROWS       = 48    # physical rows on the Waveshare 96x48 panel
-COLS       = 96    # physical columns
-CHAIN      = 1     # single panel for power supply testing
-BRIGHTNESS = 50    # Waveshare uses 100; keeping lower to limit heat on flexible panel
-
-# Waveshare-specified values for the RGB-Matrix-P2.5-96x48-F (-D0 flag set):
-GPIO_SLOW        = 5    # increased from Waveshare-specified 4 for stability
-PWM_LSB_NS       = 250  # increased from 130 for stable brightness
-PWM_BITS         = 9    # reduced from 11 for stable brightness
-LIMIT_REFRESH_HZ = 60   # cap refresh rate for stable PWM brightness
-PWM_DITHER_BITS  = 1    # temporal dithering to smooth low-brightness flicker
-
-# Row address type: 0 = default.
-# This panel uses SM5368PF XOR-shift row drivers (non-standard HUB75).
-# If rows look shuffled/doubled, try ROW_ADDR_TYPE = 5.
-ROW_ADDR_TYPE    = 0
-
-# Multiplexing: Waveshare specifies -D0 (direct/default).
-# Blank sequential rows are most likely a missing E address line, not multiplexing.
-# See README.md — Pi physical pin 10 must connect to HUB75 output pin 16.
-MULTIPLEXING     = 0
+# Matches: -D0 --led-no-hardware-pulse --led-cols=96 --led-rows=48
+#          --led-pwm-lsb-nanoseconds 130 --led-pwm-bits=11 --led-brightness=100 --led-slowdown-gpio=4
+ROWS       = 48
+COLS       = 96
+CHAIN      = 2
+BRIGHTNESS = 100
+GPIO_SLOW  = 4
+PWM_LSB_NS = 130
+PWM_BITS   = 11
+MULTIPLEXING = 0   # -D0
 
 WIDTH = COLS * CHAIN
 
@@ -57,11 +46,8 @@ def make_matrix():
     opts.gpio_slowdown            = GPIO_SLOW
     opts.pwm_lsb_nanoseconds      = PWM_LSB_NS
     opts.pwm_bits                 = PWM_BITS
-    opts.row_address_type         = ROW_ADDR_TYPE
     opts.multiplexing             = MULTIPLEXING
-    opts.disable_hardware_pulsing = True        # Waveshare-specified
-    opts.limit_refresh_rate_hz    = LIMIT_REFRESH_HZ
-    opts.pwm_dither_bits          = PWM_DITHER_BITS
+    opts.disable_hardware_pulsing = True
     return RGBMatrix(options=opts)
 
 
@@ -153,9 +139,7 @@ def test_brightness_fade(matrix):
 def main():
     print(f"Initialising {WIDTH}×{ROWS} matrix  "
           f"(chain={CHAIN}, brightness={BRIGHTNESS}%, gpio_slowdown={GPIO_SLOW}, "
-          f"pwm_bits={PWM_BITS}, pwm_lsb_ns={PWM_LSB_NS}, "
-          f"row_addr_type={ROW_ADDR_TYPE}, multiplexing={MULTIPLEXING}, "
-          f"limit_refresh_hz={LIMIT_REFRESH_HZ})")
+          f"pwm_bits={PWM_BITS}, pwm_lsb_ns={PWM_LSB_NS}, multiplexing={MULTIPLEXING})")
     print("Blank rows: try MULTIPLEXING 0/1/2/17 or check E address line (see comments).\n")
 
     matrix = make_matrix()

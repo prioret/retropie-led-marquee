@@ -68,6 +68,8 @@ Three things are needed for flicker-free output:
 
 3. **No desktop environment** — use Raspberry Pi OS Lite (64-bit). X11/window manager overhead causes PWM timing instability.
 
+**Confirmed working PWM settings** (verified on fresh Raspberry Pi OS Lite install): `gpio_slowdown=4`, `pwm_lsb_nanoseconds=130`, `pwm_bits=11`, `brightness=100`. These are the defaults in `display_marquee.py`. Previous higher-slowdown/lower-quality workarounds (`gpio_slowdown=5`, `pwm_lsb_nanoseconds=250`, `pwm_bits=9`) were only needed on a desktop OS with background load.
+
 ## Deployment
 
 **Pi 2 — set up Python virtual environment:**

@@ -4,7 +4,7 @@ Displays game marquee images on an LED matrix panel while a game is running in R
 
 ## Hardware
 
-- 2x [Waveshare RGB-Matrix-P2.5-96x48-F](https://www.waveshare.com/wiki/RGB-Matrix-P2.5-96x48-F) flexible HUB75 LED matrix panels (48×96 pixels each), arranged as a single 48×192 panel ([buy](https://www.amazon.com/dp/B0BRBDNT4L?ref=ppx_yo2ov_dt_b_fed_asin_title))
+- 2x [Waveshare RGB-Matrix-P2.5-96x48-F](https://www.waveshare.com/wiki/RGB-Matrix-P2.5-96x48-F) flexible HUB75 LED matrix panels (48×96 pixels each), chained as a single 48×192 display ([buy](https://www.amazon.com/dp/B0BRBDNT4L?ref=ppx_yo2ov_dt_b_fed_asin_title))
 - Panels wired directly to Raspberry Pi GPIO (no HAT or driver board)
 
 ### E address line
@@ -31,12 +31,12 @@ HUB75 16-pin IDC pinout (pin 1 = top-left when facing the connector):
 
 When wiring directly, connect **Pi physical pin 10** to **HUB75 pin 16** (E).
 
-### hzeller rpi-rgb-led-matrix options
+### rpi-rgb-led-matrix options
 
-These are the options specified by Waveshare for the RGB-Matrix-P2.5-96x48-F panel with the [hzeller/rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix) library:
+Confirmed working options for the Waveshare RGB-Matrix-P2.5-96x48-F panel with two panels chained:
 
 ```
--D0 --led-no-hardware-pulse --led-cols=96 --led-rows=48 \
+-D0 --led-no-hardware-pulse --led-cols=96 --led-rows=48 --led-chain=2 \
     --led-pwm-lsb-nanoseconds=130 --led-pwm-bits=11 \
     --led-brightness=100 --led-slowdown-gpio=4
 ```
@@ -45,14 +45,13 @@ These are the options specified by Waveshare for the RGB-Matrix-P2.5-96x48-F pan
 |------|-------|-------|
 | `-D0` | multiplexing=0 | Direct (default); blank rows are an E address line issue, not multiplexing |
 | `--led-no-hardware-pulse` | — | Waveshare-specified |
-| `--led-cols` | 96 | |
-| `--led-rows` | 48 | |
-| `--led-pwm-lsb-nanoseconds` | 130 | Waveshare-specified for this panel |
+| `--led-cols` | 96 | Columns per panel |
+| `--led-rows` | 48 | Rows per panel |
+| `--led-chain` | 2 | Number of panels chained |
+| `--led-pwm-lsb-nanoseconds` | 130 | Waveshare-specified |
 | `--led-pwm-bits` | 11 | Colour depth |
-| `--led-brightness` | 100 | Consider lower values (e.g. 50) to reduce heat on the flexible panel |
-| `--led-slowdown-gpio` | 4 | Waveshare-specified; try 3 if display is stable |
-
-In the Python API (`test_matrix.py`), these map to `RGBMatrixOptions` fields: `multiplexing`, `disable_hardware_pulsing`, `cols`, `rows`, `pwm_lsb_nanoseconds`, `pwm_bits`, `brightness`, `gpio_slowdown`.
+| `--led-brightness` | 100 | |
+| `--led-slowdown-gpio` | 4 | Waveshare-specified |
 
 ## Architecture
 
@@ -112,44 +111,9 @@ Runs as a systemd service on the display Pi.
 |----------|---------|-------------|
 | `INCOMING_FILE` | `/tmp/marquee_incoming/current.png` | Where Pi 1 delivers images |
 | `CACHE_DIR` | `/var/cache/marquee` | Resized image cache |
-| `HARDWARE_MAPPING` | `regular` | rpi-rgb-led-matrix mapping (`adafruit-hat`, etc.) |
-| `DISPLAY_WIDTH/HEIGHT` | `192` / `48` | LED panel resolution |
-
-**Permissions and display stability:**
-
-The matrix driver needs two things to run cleanly:
-
-1. **GPIO access** — add your user to the `gpio` group (one-time setup):
-   ```bash
-   sudo usermod -a -G gpio prioret
-   ```
-
-2. **Realtime thread priority** — without this the OS scheduler interrupts PWM timing, causing brightness instability and row flicker. Either run as root, or grant the capability to the venv Python binary:
-   ```bash
-   sudo setcap 'cap_sys_nice=eip' /home/prioret/git/retropie-led-marquee/venv/bin/python3
-   ```
-   The systemd service should run as root (`User=root` in the `.service` file) or have this capability set.
-
-3. **CPU isolation** — for the most stable output, dedicate one CPU core to the matrix driver. Add `isolcpus=3` to the end of `/boot/cmdline.txt` (all on one line) and reboot:
-   ```
-   … existing options … isolcpus=3
-   ```
-   This prevents the kernel from scheduling other tasks onto core 3, eliminating the remaining brightness shimmer.
-
-**Install service:**
-```bash
-sudo cp display_marquee.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable display_marquee
-sudo systemctl start display_marquee
-```
-
-**After updating the service file** (e.g. changing `User`, `ExecStart`, etc.):
-```bash
-sudo cp display_marquee.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl restart display_marquee
-```
+| `HARDWARE_MAPPING` | `regular` | rpi-rgb-led-matrix mapping |
+| `DISPLAY_WIDTH` | `192` | Total width (96 × 2 panels) |
+| `DISPLAY_HEIGHT` | `48` | Panel height |
 
 **Check service status and logs:**
 ```bash
@@ -159,11 +123,11 @@ sudo journalctl -u display_marquee -f
 
 ## Pi 2 — Fresh install from scratch
 
-Use **Raspberry Pi OS Lite (64-bit)** — no desktop environment. The X11/window manager overhead causes PWM timing instability that manifests as brightness flicker on the LED panel.
+Use **Raspberry Pi OS Lite (64-bit)** — no desktop environment. X11/window manager overhead causes PWM timing instability that manifests as brightness flicker on the LED panel.
 
 ### 1. Flash the SD card
 
-Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/). In the OS customisation screen (gear icon), set:
+Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/). In the OS customisation screen, set:
 - Hostname (e.g. `marqueepi`)
 - Username and password
 - Enable SSH
@@ -173,14 +137,14 @@ Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/). In the OS cust
 
 ```bash
 sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y git python3-dev python3-venv cython3
+sudo apt-get install -y git python3-dev python3-venv python3-pip python3-pil cython3
 ```
 
-### 3. CPU isolation — edit cmdline.txt
+> `python3-pil` is required to provide the `Imaging.h` header that the rpi-rgb-led-matrix Python bindings need to compile.
 
-On Raspberry Pi OS Bookworm (current), the file is `/boot/firmware/cmdline.txt`. On Bullseye and earlier it is `/boot/cmdline.txt`.
+### 3. CPU isolation
 
-The file is a **single line** — do not add a newline. Append `isolcpus=3` to the end:
+On Raspberry Pi OS Bookworm (current), the boot config is at `/boot/firmware/cmdline.txt`. The file is a **single line** — do not add a newline. Append `isolcpus=3` to the end:
 
 ```bash
 sudo nano /boot/firmware/cmdline.txt
@@ -196,60 +160,70 @@ After:
 console=serial0,115200 console=tty1 root=PARTUUID=... rootfstype=ext4 fsck.repair=yes rootwait isolcpus=3
 ```
 
-Reboot and confirm it took effect:
+Reboot and confirm:
 ```bash
 sudo reboot
 cat /sys/devices/system/cpu/isolated   # should print: 3
 ```
 
-### 4. Clone this repo
-
-The service file expects the repo at `~/retropie-led-marquee`:
+### 4. Clone repos
 
 ```bash
-cd ~
+mkdir -p ~/git && cd ~/git
 git clone https://github.com/YOUR_USERNAME/retropie-led-marquee.git
-```
-
-### 5. Build and install rpi-rgb-led-matrix
-
-```bash
-cd ~
 git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
-cd ~/retropie-led-marquee
-python3 -m venv venv
-venv/bin/pip install --upgrade pip
-cd ~/rpi-rgb-led-matrix
-~/retropie-led-marquee/venv/bin/pip install .
 ```
 
-### 6. Install Python dependencies
+### 5. Build rpi-rgb-led-matrix system-wide
 
 ```bash
-cd ~/retropie-led-marquee
-venv/bin/pip install -r requirements.txt
+cd ~/git/rpi-rgb-led-matrix
+sudo pip3 install . --break-system-packages
 ```
 
-### 7. Create required directories
+### 6. Set up the Python virtual environment
+
+```bash
+cd ~/git/retropie-led-marquee
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
+venv/bin/pip install ~/git/rpi-rgb-led-matrix
+```
+
+### 7. Test the hardware
+
+```bash
+cd ~/git/retropie-led-marquee
+sudo venv/bin/python3 test_matrix.py
+```
+
+This cycles through solid colours, gradient, checkerboard, border outline, pixel walk, and brightness fade. Use this to verify panel wiring, E address line, and PWM settings before running the service.
+
+### 8. Create required directories
 
 ```bash
 sudo mkdir -p /var/logs /var/cache/marquee /tmp/marquee_incoming
 ```
 
-### 8. Install and enable the service
-
-Open `display_marquee.service` and verify the `ExecStart` paths match your username and clone location, then:
+### 9. Install and enable the service
 
 ```bash
-sudo cp ~/retropie-led-marquee/display_marquee.service /etc/systemd/system/
+sudo cp ~/git/retropie-led-marquee/display_marquee.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable display_marquee
 sudo systemctl start display_marquee
 ```
 
-### 9. Verify
+**After updating the service file:**
+```bash
+sudo cp ~/git/retropie-led-marquee/display_marquee.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart display_marquee
+```
+
+### 10. Verify
 
 ```bash
 sudo systemctl status display_marquee
-sudo venv/bin/python3 ~/retropie-led-marquee/test_matrix.py   # quick hardware test
+sudo journalctl -u display_marquee -f
 ```
