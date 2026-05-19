@@ -3,7 +3,7 @@
 # --- Configuration ---
 DEFAULT_IMAGE="/home/pi/RetroPie/marquees/default.png"
 PI2_USER="prioret"
-PI2_HOST="192.168.1.107"
+PI2_HOST="192.168.1.204"
 PI2_DEST="/tmp/marquee_incoming/current.png"
 CHECK_INTERVAL=2
 LOG_FILE="/var/log/marquee_finder.log"
