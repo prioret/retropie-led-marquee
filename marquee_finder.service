@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-ExecStart=/bin/bash /home/pi/retropie-led-marquee/marquee_finder.sh
+ExecStart=/bin/bash /home/pi/git/retropie-led-marquee/marquee_finder.sh
 Restart=always
 RestartSec=5
 
