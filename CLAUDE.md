@@ -8,9 +8,11 @@ This project displays LED marquee images on a 48×192 HUB75 LED panel while a ga
 
 ## Hardware
 
-- 2× HUB75 LED matrix panels (48×96 each), arranged as a single 48×192 display
+- 2× Waveshare RGB-Matrix-P2.5-96x48-F flexible HUB75 LED matrix panels (48×96 each), arranged as a single 48×192 display
 - Panels wired directly to Raspberry Pi GPIO (no HAT or driver board)
 - `disable_hardware_pulsing = True` is required in `RGBMatrixOptions` (Waveshare-specified)
+
+**E address line:** The 96×48 panel has 48 rows, which requires the HUB75 E address line. Without it, rows 16–23 and 40–47 are blank. In the `regular` hardware mapping: **Pi physical pin 10 → HUB75 output pin 16 (E)**. Blank rows in groups of 8 almost always mean E is not connected — not a multiplexing issue.
 
 ## Architecture
 
@@ -46,8 +48,8 @@ Logs to `/var/logs/marquee_finder.log` (note: non-standard `logs` path, not `/va
 Run as a systemd service via `display_marquee.service`.
 
 - Polls `INCOMING_FILE` (`/tmp/marquee_incoming/current.png`) every 0.5 s.
-- On new file: checks `CACHE_DIR` (`/var/cache/marquee/`) for a pre-resized copy keyed by MD5 of the file content. If not cached, resizes the image to fit 48×192 with letterboxing on black and saves to cache.
-- Displays the resized image via `matrix.SetImage()` (rpi-rgb-led-matrix).
+- On new file: checks `CACHE_DIR` (`/var/cache/marquee/`) for a pre-resized copy keyed by MD5 of the file content. If not cached, resizes the image to fit the panel with letterboxing on black and saves to cache.
+- Displays the resized image via `matrix.SetImage()` using double-buffering (`SwapOnVSync`).
 - Deletes the original file so the next SCP from Pi 1 triggers a new display cycle.
 
 Hardware config at the top of the script: `ROWS_PER_PANEL`, `COLS_PER_PANEL`, `CHAIN_LENGTH`, `HARDWARE_MAPPING`.
@@ -55,6 +57,16 @@ Hardware config at the top of the script: `ROWS_PER_PANEL`, `COLS_PER_PANEL`, `C
 **Panel config relationship:** `DISPLAY_WIDTH = COLS_PER_PANEL × CHAIN_LENGTH` and `DISPLAY_HEIGHT = ROWS_PER_PANEL`. If you change `CHAIN_LENGTH`, update `DISPLAY_WIDTH` to match, or the cache key and resize target will be wrong.
 
 Logs to `/var/logs/display_marquee.log` (same non-standard path as above).
+
+## Display stability requirements (Pi 2)
+
+Three things are needed for flicker-free output:
+
+1. **Realtime thread priority** — the service runs as `User=root` in `display_marquee.service`. Without root (or `cap_sys_nice`), the OS scheduler interrupts PWM timing, causing brightness instability and row flicker.
+
+2. **CPU isolation** — dedicate one core to the matrix driver by appending `isolcpus=3` to `/boot/firmware/cmdline.txt` (single line, no newline) and rebooting. Confirm with `cat /sys/devices/system/cpu/isolated`.
+
+3. **No desktop environment** — use Raspberry Pi OS Lite (64-bit). X11/window manager overhead causes PWM timing instability.
 
 ## Deployment
 
@@ -68,7 +80,7 @@ venv/bin/pip install -r requirements.txt
 # See: https://github.com/hzeller/rpi-rgb-led-matrix
 ```
 
-**Pi 1 — install service:**
+**Pi 1 — install service** (scripts expected at `/home/pi/retropie-led-marquee/`):
 ```bash
 sudo cp marquee_finder.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -76,7 +88,7 @@ sudo systemctl enable marquee_finder
 sudo systemctl start marquee_finder
 ```
 
-**Pi 2 — install service:**
+**Pi 2 — install service** (scripts expected at `/home/prioret/retropie-led-marquee/`):
 ```bash
 sudo cp display_marquee.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -84,7 +96,18 @@ sudo systemctl enable display_marquee
 sudo systemctl start display_marquee
 ```
 
-Both services expect the scripts at `/home/pi/retropie-led-marquee/`.
+**After updating the service file:**
+```bash
+sudo cp display_marquee.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart display_marquee
+```
+
+**Check service status and logs:**
+```bash
+sudo systemctl status display_marquee
+sudo journalctl -u display_marquee -f
+```
 
 ## Testing
 
@@ -100,14 +123,19 @@ bash -n marquee_finder.sh
 echo "snes" > /tmp/current_system.txt
 echo "/home/pi/RetroPie/roms/snes/MyGame.smc" > /tmp/current_rom.txt
 # Start a dummy process named 'retroarch' so pgrep -x retroarch succeeds:
-sleep 3600 &
 exec -a retroarch sleep 3600 &
 bash marquee_finder.sh
 ```
 
 **Pi 2 — preview mode (no LED hardware):**
 ```bash
-# rgbmatrix import will fail gracefully; script prints what it would display
+# rgbmatrix import fails gracefully; script prints what it would display
 python3 display_marquee.py
 # then drop a PNG into /tmp/marquee_incoming/current.png to trigger a cycle
 ```
+
+**Pi 2 — hardware test** (requires rgbmatrix in venv):
+```bash
+sudo venv/bin/python3 test_matrix.py
+```
+Cycles through solid colours, gradient, checkerboard, border outline, pixel walk, and brightness fade. Use this to verify panel wiring, E address line, and PWM settings before running the service.
