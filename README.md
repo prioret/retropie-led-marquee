@@ -190,6 +190,18 @@ venv/bin/pip install -r requirements.txt
 venv/bin/pip install ~/git/rpi-rgb-led-matrix
 ```
 
+Verify Pillow loaded correctly (all plugins must register):
+
+```bash
+venv/bin/python3 -c "from PIL import Image; Image.init(); print('Pillow OK')"
+```
+
+If this fails or prints nothing after `Pillow OK`, reinstall with:
+
+```bash
+venv/bin/pip install --no-cache-dir pillow
+```
+
 ### 7. Test the hardware
 
 ```bash

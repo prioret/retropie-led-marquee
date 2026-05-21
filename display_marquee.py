@@ -4,7 +4,9 @@ import hashlib
 import logging
 import os
 import time
-from PIL import Image
+import png
+from PIL import Image, ImageFile
+Image.init()
 
 try:
     from rgbmatrix import RGBMatrix, RGBMatrixOptions
@@ -65,15 +67,23 @@ def setup_matrix():
     return RGBMatrix(options=options)
 
 
-def file_hash(path):
-    h = hashlib.md5()
-    with open(path, "rb") as f:
-        h.update(f.read())
-    return h.hexdigest()
-
-
 def cache_path(content_hash):
     return os.path.join(CACHE_DIR, f"{content_hash}_{DISPLAY_WIDTH}x{DISPLAY_HEIGHT}.png")
+
+
+def _load_png(path):
+    """Load a PNG via pypng (tolerates bad CRCs and non-standard chunks)."""
+    reader = png.Reader(filename=path)
+    width, height, rows, info = reader.asDirect()
+    planes = info['planes']
+    bitdepth = info['bitdepth']
+    row_list = list(rows)
+    if bitdepth == 16:
+        raw = b''.join(bytes(v >> 8 for v in row) for row in row_list)
+    else:
+        raw = b''.join(bytes(row) for row in row_list)
+    mode = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}[planes]
+    return Image.frombytes(mode, (width, height), raw)
 
 
 def resize_to_fit(img):
@@ -95,7 +105,13 @@ def resize_to_fit(img):
 
 
 def process_and_display(matrix, incoming):
-    content_hash = file_hash(incoming)
+    with open(incoming, 'rb') as f:
+        data = f.read()
+    if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+        raise ValueError(
+            f"Not a valid PNG ({len(data)} bytes, header={data[:8].hex() if data else 'empty'})"
+        )
+    content_hash = hashlib.md5(data).hexdigest()
     cached = cache_path(content_hash)
 
     if os.path.exists(cached):
@@ -103,8 +119,8 @@ def process_and_display(matrix, incoming):
         img = Image.open(cached).convert("RGB")
     else:
         logging.info("Cache miss for %s, resizing to %dx%d", incoming, DISPLAY_WIDTH, DISPLAY_HEIGHT)
-        img = resize_to_fit(Image.open(incoming).convert("RGB"))
-        img.save(cached)
+        img = resize_to_fit(_load_png(incoming).convert("RGB"))
+        img.save(cached, format="PNG")
         logging.info("Cached resized image at %s", cached)
 
     if matrix:
@@ -122,7 +138,10 @@ def process_and_display(matrix, incoming):
 def main():
     setup_logging()
     os.makedirs(CACHE_DIR, exist_ok=True)
-    os.makedirs(os.path.dirname(INCOMING_FILE), exist_ok=True)
+    os.chmod(CACHE_DIR, 0o777)
+    incoming_dir = os.path.dirname(INCOMING_FILE)
+    os.makedirs(incoming_dir, exist_ok=True)
+    os.chmod(incoming_dir, 0o777)
 
     logging.info("display_marquee starting, watching %s", INCOMING_FILE)
     matrix = setup_matrix()
@@ -134,7 +153,7 @@ def main():
             try:
                 process_and_display(matrix, INCOMING_FILE)
             except Exception as exc:
-                logging.error("Error processing %s: %s", INCOMING_FILE, exc)
+                logging.error("Error processing %s: %s", INCOMING_FILE, exc, exc_info=True)
                 try:
                     os.remove(INCOMING_FILE)
                     logging.warning("Deleted %s after error", INCOMING_FILE)
