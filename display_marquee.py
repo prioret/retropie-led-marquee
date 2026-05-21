@@ -86,22 +86,22 @@ def _load_png(path):
     return Image.frombytes(mode, (width, height), raw)
 
 
-def resize_to_fit(img):
-    """Fit img inside DISPLAY_WIDTH x DISPLAY_HEIGHT, centred on black."""
+def resize_to_fill(img):
+    """Scale img to cover DISPLAY_WIDTH x DISPLAY_HEIGHT, centre-crop the overflow."""
     img_ratio = img.width / img.height
     target_ratio = DISPLAY_WIDTH / DISPLAY_HEIGHT
 
     if img_ratio > target_ratio:
-        new_w = DISPLAY_WIDTH
-        new_h = int(DISPLAY_WIDTH / img_ratio)
-    else:
         new_h = DISPLAY_HEIGHT
         new_w = int(DISPLAY_HEIGHT * img_ratio)
+    else:
+        new_w = DISPLAY_WIDTH
+        new_h = int(DISPLAY_WIDTH / img_ratio)
 
     resized = img.resize((new_w, new_h), Image.LANCZOS)
-    canvas = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), (0, 0, 0))
-    canvas.paste(resized, ((DISPLAY_WIDTH - new_w) // 2, (DISPLAY_HEIGHT - new_h) // 2))
-    return canvas
+    left = (new_w - DISPLAY_WIDTH) // 2
+    top = (new_h - DISPLAY_HEIGHT) // 2
+    return resized.crop((left, top, left + DISPLAY_WIDTH, top + DISPLAY_HEIGHT))
 
 
 def process_and_display(matrix, incoming):
@@ -119,7 +119,7 @@ def process_and_display(matrix, incoming):
         img = Image.open(cached).convert("RGB")
     else:
         logging.info("Cache miss for %s, resizing to %dx%d", incoming, DISPLAY_WIDTH, DISPLAY_HEIGHT)
-        img = resize_to_fit(_load_png(incoming).convert("RGB"))
+        img = resize_to_fill(_load_png(incoming).convert("RGB"))
         img.save(cached, format="PNG")
         logging.info("Cached resized image at %s", cached)
 
