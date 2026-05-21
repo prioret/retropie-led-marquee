@@ -1,2 +1,3 @@
 Pillow
 pypng
+inotify_simple

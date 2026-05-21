@@ -3,8 +3,8 @@
 import hashlib
 import logging
 import os
-import time
 import png
+import inotify_simple
 from PIL import Image, ImageFile
 Image.init()
 
@@ -24,7 +24,6 @@ ROWS_PER_PANEL   = 48
 COLS_PER_PANEL   = 96
 CHAIN_LENGTH     = 2
 HARDWARE_MAPPING = "regular"   # use "adafruit-hat" if using Adafruit bonnet
-CHECK_INTERVAL   = 0.5         # seconds between polls
 
 # LED matrix hardware settings (Waveshare RGB-Matrix-P2.5-96x48-F, direct GPIO)
 # Matches: -D0 --led-no-hardware-pulse --led-cols=96 --led-rows=48
@@ -40,7 +39,7 @@ MULTIPLEXING  = 0     # -D0
 def setup_logging():
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s %(levelname)s %(message)s",
         handlers=[
             logging.FileHandler(LOG_FILE),
@@ -148,8 +147,16 @@ def main():
     if matrix:
         logging.info("LED matrix initialised (%dx%d, chain %d)", ROWS_PER_PANEL, COLS_PER_PANEL, CHAIN_LENGTH)
 
+    inotify = inotify_simple.INotify()
+    inotify.add_watch(incoming_dir, inotify_simple.flags.MOVED_TO | inotify_simple.flags.CLOSE_WRITE)
+    logging.info("Watching %s for incoming images", incoming_dir)
+
+    target = os.path.basename(INCOMING_FILE)
     while True:
-        if os.path.exists(INCOMING_FILE):
+        for event in inotify.read():
+            logging.debug("inotify event: mask=%s name=%s", event.mask, event.name)
+            if event.name != target:
+                continue
             try:
                 process_and_display(matrix, INCOMING_FILE)
             except Exception as exc:
@@ -159,7 +166,6 @@ def main():
                     logging.warning("Deleted %s after error", INCOMING_FILE)
                 except OSError:
                     pass
-        time.sleep(CHECK_INTERVAL)
 
 
 if __name__ == "__main__":
