@@ -17,7 +17,6 @@ except ImportError:
 # --- Configuration ---
 INCOMING_FILE    = "/tmp/marquee_incoming/current.png"
 CACHE_DIR        = "/var/cache/marquee"
-LOG_FILE         = "/var/log/display_marquee.log"
 DISPLAY_WIDTH    = 192
 DISPLAY_HEIGHT   = 48
 ROWS_PER_PANEL   = 48
@@ -29,22 +28,18 @@ HARDWARE_MAPPING = "regular"   # use "adafruit-hat" if using Adafruit bonnet
 # Matches: -D0 --led-no-hardware-pulse --led-cols=96 --led-rows=48
 #          --led-pwm-lsb-nanoseconds 130 --led-pwm-bits=11 --led-brightness=100 --led-slowdown-gpio=4
 BRIGHTNESS    = 100
-GPIO_SLOWDOWN = 4
-PWM_LSB_NS    = 130
-PWM_BITS      = 11
+GPIO_SLOWDOWN = 5
+PWM_LSB_NS    = 200
+PWM_BITS      = 9
 MULTIPLEXING  = 0     # -D0
 # ---------------------
 
 
 def setup_logging():
-    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler(LOG_FILE),
-            logging.StreamHandler(),
-        ],
+        handlers=[logging.StreamHandler()],
     )
 
 
@@ -62,6 +57,7 @@ def setup_matrix():
     options.pwm_lsb_nanoseconds      = PWM_LSB_NS
     options.pwm_bits                 = PWM_BITS
     options.multiplexing             = MULTIPLEXING
+    options.limit_refresh_rate_hz    = 120
     options.disable_hardware_pulsing = True
     return RGBMatrix(options=options)
 
@@ -114,24 +110,22 @@ def process_and_display(matrix, incoming):
     cached = cache_path(content_hash)
 
     if os.path.exists(cached):
-        logging.info("Cache hit for %s, loading %s", incoming, cached)
         img = Image.open(cached).convert("RGB")
+        cache_status = "hit"
     else:
-        logging.info("Cache miss for %s, resizing to %dx%d", incoming, DISPLAY_WIDTH, DISPLAY_HEIGHT)
         img = resize_to_fill(_load_png(incoming).convert("RGB"))
         img.save(cached, format="PNG")
-        logging.info("Cached resized image at %s", cached)
+        cache_status = "miss"
 
     if matrix:
         canvas = matrix.CreateFrameCanvas()
         canvas.SetImage(img)
         matrix.SwapOnVSync(canvas)
-        logging.info("Displayed %s on LED matrix", incoming)
     else:
-        logging.info("[preview] Would display %s (%s), cached at %s", incoming, img.size, cached)
+        logging.info("[preview] %s (%s)", incoming, img.size)
 
     os.remove(incoming)
-    logging.info("Deleted original %s", incoming)
+    logging.info("Displayed %s (cache %s)", os.path.basename(incoming), cache_status)
 
 
 def main():
@@ -142,14 +136,12 @@ def main():
     os.makedirs(incoming_dir, exist_ok=True)
     os.chmod(incoming_dir, 0o777)
 
-    logging.info("display_marquee starting, watching %s", INCOMING_FILE)
+    logging.info("display_marquee starting")
     matrix = setup_matrix()
-    if matrix:
-        logging.info("LED matrix initialised (%dx%d, chain %d)", ROWS_PER_PANEL, COLS_PER_PANEL, CHAIN_LENGTH)
 
     inotify = inotify_simple.INotify()
     inotify.add_watch(incoming_dir, inotify_simple.flags.MOVED_TO | inotify_simple.flags.CLOSE_WRITE)
-    logging.info("Watching %s for incoming images", incoming_dir)
+    logging.info("Watching %s", incoming_dir)
 
     target = os.path.basename(INCOMING_FILE)
     while True:

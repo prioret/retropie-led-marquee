@@ -166,7 +166,16 @@ sudo reboot
 cat /sys/devices/system/cpu/isolated   # should print: 3
 ```
 
-### 4. Clone repos
+### 4. Disable unnecessary services
+
+The LED matrix driver is sensitive to CPU scheduling interruptions. Disabling services that aren't needed reduces background load and improves display stability.
+
+```bash
+sudo systemctl disable --now bluetooth avahi-daemon serial-getty@ttyS0 alsa-restore
+sudo systemctl mask cloud-init cloud-config cloud-final cloud-init-local
+```
+
+### 5. Clone repos
 
 ```bash
 mkdir -p ~/git && cd ~/git
@@ -174,14 +183,14 @@ git clone https://github.com/YOUR_USERNAME/retropie-led-marquee.git
 git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
 ```
 
-### 5. Build rpi-rgb-led-matrix system-wide
+### 6. Build rpi-rgb-led-matrix system-wide
 
 ```bash
 cd ~/git/rpi-rgb-led-matrix
 sudo pip3 install . --break-system-packages
 ```
 
-### 6. Set up the Python virtual environment
+### 7. Set up the Python virtual environment
 
 ```bash
 cd ~/git/retropie-led-marquee
@@ -202,7 +211,7 @@ If this fails or prints nothing after `Pillow OK`, reinstall with:
 venv/bin/pip install --no-cache-dir pillow
 ```
 
-### 7. Test the hardware
+### 8. Test the hardware
 
 ```bash
 cd ~/git/retropie-led-marquee
@@ -211,13 +220,13 @@ sudo venv/bin/python3 test_matrix.py
 
 This cycles through solid colours, gradient, checkerboard, border outline, pixel walk, and brightness fade. Use this to verify panel wiring, E address line, and PWM settings before running the service.
 
-### 8. Create required directories
+### 9. Create required directories
 
 ```bash
 sudo mkdir -p /var/logs /var/cache/marquee /tmp/marquee_incoming
 ```
 
-### 9. Install and enable the service
+### 10. Install and enable the service
 
 ```bash
 sudo cp ~/git/retropie-led-marquee/display_marquee.service /etc/systemd/system/
@@ -233,7 +242,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart display_marquee
 ```
 
-### 10. Verify
+### 11. Verify
 
 ```bash
 sudo systemctl status display_marquee
