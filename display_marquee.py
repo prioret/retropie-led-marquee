@@ -16,6 +16,8 @@ except ImportError:
 
 # --- Configuration ---
 INCOMING_FILE    = "/tmp/marquee_incoming/current.png"
+CLEAR_FILE       = "/tmp/marquee_incoming/clear"
+DEFAULT_IMAGE    = "/home/prioret/retropie-led-marquee/default.png"
 CACHE_DIR        = "/var/cache/marquee"
 DISPLAY_WIDTH    = 192
 DISPLAY_HEIGHT   = 48
@@ -99,8 +101,8 @@ def resize_to_fill(img):
     return resized.crop((left, top, left + DISPLAY_WIDTH, top + DISPLAY_HEIGHT))
 
 
-def process_and_display(matrix, incoming):
-    with open(incoming, 'rb') as f:
+def display_file(matrix, path):
+    with open(path, 'rb') as f:
         data = f.read()
     if not data.startswith(b'\x89PNG\r\n\x1a\n'):
         raise ValueError(
@@ -113,7 +115,7 @@ def process_and_display(matrix, incoming):
         img = Image.open(cached).convert("RGB")
         cache_status = "hit"
     else:
-        img = resize_to_fill(_load_png(incoming).convert("RGB"))
+        img = resize_to_fill(_load_png(path).convert("RGB"))
         img.save(cached, format="PNG")
         cache_status = "miss"
 
@@ -122,10 +124,9 @@ def process_and_display(matrix, incoming):
         canvas.SetImage(img)
         matrix.SwapOnVSync(canvas)
     else:
-        logging.info("[preview] %s (%s)", incoming, img.size)
+        logging.info("[preview] %s (%s)", path, img.size)
 
-    os.remove(incoming)
-    logging.info("Displayed %s (cache %s)", os.path.basename(incoming), cache_status)
+    logging.info("Displayed %s (cache %s)", os.path.basename(path), cache_status)
 
 
 def main():
@@ -139,25 +140,46 @@ def main():
     logging.info("display_marquee starting")
     matrix = setup_matrix()
 
+    if os.path.exists(DEFAULT_IMAGE):
+        try:
+            display_file(matrix, DEFAULT_IMAGE)
+        except Exception as exc:
+            logging.error("Error displaying default image: %s", exc, exc_info=True)
+    else:
+        logging.warning("Default image not found: %s", DEFAULT_IMAGE)
+
     inotify = inotify_simple.INotify()
     inotify.add_watch(incoming_dir, inotify_simple.flags.MOVED_TO | inotify_simple.flags.CLOSE_WRITE)
     logging.info("Watching %s", incoming_dir)
 
     target = os.path.basename(INCOMING_FILE)
+    clear  = os.path.basename(CLEAR_FILE)
     while True:
         for event in inotify.read():
             logging.debug("inotify event: mask=%s name=%s", event.mask, event.name)
-            if event.name != target:
-                continue
-            try:
-                process_and_display(matrix, INCOMING_FILE)
-            except Exception as exc:
-                logging.error("Error processing %s: %s", INCOMING_FILE, exc, exc_info=True)
+            if event.name == clear:
                 try:
-                    os.remove(INCOMING_FILE)
-                    logging.warning("Deleted %s after error", INCOMING_FILE)
+                    os.remove(CLEAR_FILE)
                 except OSError:
                     pass
+                if os.path.exists(DEFAULT_IMAGE):
+                    try:
+                        display_file(matrix, DEFAULT_IMAGE)
+                    except Exception as exc:
+                        logging.error("Error displaying default image: %s", exc, exc_info=True)
+                else:
+                    logging.warning("Default image not found: %s", DEFAULT_IMAGE)
+            elif event.name == target:
+                try:
+                    display_file(matrix, INCOMING_FILE)
+                    os.remove(INCOMING_FILE)
+                except Exception as exc:
+                    logging.error("Error processing %s: %s", INCOMING_FILE, exc, exc_info=True)
+                    try:
+                        os.remove(INCOMING_FILE)
+                        logging.warning("Deleted %s after error", INCOMING_FILE)
+                    except OSError:
+                        pass
 
 
 if __name__ == "__main__":
