@@ -17,7 +17,7 @@ except ImportError:
 # --- Configuration ---
 INCOMING_FILE    = "/tmp/marquee_incoming/current.png"
 CLEAR_FILE       = "/tmp/marquee_incoming/clear"
-DEFAULT_IMAGE    = "/home/prioret/retropie-led-marquee/default.png"
+DEFAULT_IMAGE    = "/home/prioret/git/retropie-led-marquee/default.png"
 CACHE_DIR        = "/var/cache/marquee"
 DISPLAY_WIDTH    = 192
 DISPLAY_HEIGHT   = 48
