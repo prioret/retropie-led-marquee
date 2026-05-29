@@ -90,7 +90,7 @@ sudo systemctl enable marquee_finder
 sudo systemctl start marquee_finder
 ```
 
-**Pi 2 — install service** (scripts expected at `/home/prioret/retropie-led-marquee/`):
+**Pi 2 — install service** (scripts expected at `/home/prioret/git/retropie-led-marquee/`):
 ```bash
 sudo cp display_marquee.service /etc/systemd/system/
 sudo systemctl daemon-reload
